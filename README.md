@@ -91,13 +91,13 @@ curl -X POST http://localhost:8000/api/v1/analyze \
 # Com análise IA — Claude
 curl -X POST http://localhost:8000/api/v1/analyze/insights \
   -F "file=@PETR4_DFP_2025.pdf" \
-  -F "api_key=sk-ant-api03-..." \
+  --F "api_key=$ANTHROPIC_API_KEY" \
   -F "provider=anthropic"
 
 # Com análise IA — OpenAI
 curl -X POST http://localhost:8000/api/v1/analyze/insights \
   -F "file=@MGLU_ER_4T25.pdf" \
-  -F "api_key=sk-..." \
+  -F "api_key=$OpenAI_API_KEY" \
   -F "provider=openai"
 ```
 
