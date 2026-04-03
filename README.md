@@ -12,8 +12,8 @@
    ou PNG estático se preferir simplicidade. Dimensão: 1200×700px.
 ────────────────────────────────────────────────────────────────────────────-->
 
+<img width="1526" height="633" alt="capturaFinStatement" src="https://github.com/user-attachments/assets/54507930-664c-48f6-8bf9-8ef5e95eb0ba" />
 
-<img width="1526" height="633" alt="capturaFinStatement" src="https://github.com/user-attachments/assets/cae85b47-4575-402b-89ab-57aedb57a568" />
 
 
 ## O problema
@@ -72,8 +72,8 @@ Abra **http://localhost:8000** no browser. Não há mais nenhum passo.
    Objetivo: mostrar que é simples — uma tela, um botão.
    Formato sugerido: PNG estático, 1200×500px.
 ────────────────────────────────────────────────────────────────────────────-->
+![finStatementGUiaInserirPDFV2](https://github.com/user-attachments/assets/58640bae-c6c0-49c1-a2e7-b7c8376c8859)
 
-![finStatementGUiaInserirPDFV2](https://github.com/user-attachments/assets/7c58a090-31d3-4e22-9150-cbe81ba73b39)
 
 1. Arraste ou selecione o PDF (DFP, ITR ou Earnings Release)
 2. **Sem API Key:** clique em Analisar — Buffett Score e planilha Excel em ~2 segundos
@@ -135,7 +135,8 @@ Todas as tabelas detectadas no PDF, navegáveis diretamente na interface. Útil 
    Objetivo: mostrar que a IA cita números reais, não texto genérico.
    Formato sugerido: PNG estático ou GIF com scroll, 1200×800px.
 ────────────────────────────────────────────────────────────────────────────-->
-![analysisModel_V3](https://github.com/user-attachments/assets/26cd88b6-e411-4552-bbc9-097c43b79b90)
+![analysisModel_V3](https://github.com/user-attachments/assets/5f158dee-8f92-4b82-943d-6524447d13f9)
+
 
 Análise narrativa gerada pelo modelo de sua escolha, ancorada nos números extraídos do PDF:
 
