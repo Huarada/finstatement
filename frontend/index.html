@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FinStatement — Análise Financeira Buffett</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#080c10; --bg-2:#0d1117; --bg-3:#161b22; --bg-4:#1c2330;
+  --border:#21262d; --border-2:#30363d;
+  --text:#e6edf3; --text-2:#8b949e; --text-3:#484f58;
+  --accent:#f0b429; --accent-dim:#f0b42920;
+  --green:#3fb950; --green-dim:#3fb95018;
+  --yellow:#d29922; --yellow-dim:#d2992218;
+  --red:#f85149; --red-dim:#f8514918;
+  --blue:#58a6ff; --blue-dim:#58a6ff18;
+  --mono:"IBM Plex Mono",monospace; --sans:"IBM Plex Sans",sans-serif;
+  --r:6px; --rl:10px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;line-height:1.6;-webkit-font-smoothing:antialiased}
+.mono{font-family:var(--mono)}
+.hidden{display:none!important}
+
+/* Topbar */
+.topbar{display:flex;align-items:center;gap:12px;padding:14px 24px;border-bottom:1px solid var(--border);background:var(--bg-2);position:sticky;top:0;z-index:50}
+.topbar svg{width:28px;height:28px;flex-shrink:0}
+.topbar-title{font-family:var(--mono);font-size:.875rem;font-weight:600}
+.topbar-sub{font-size:.7rem;color:var(--text-3);font-family:var(--mono)}
+.topbar-spacer{flex:1}
+.pill{font-family:var(--mono);font-size:.7rem;padding:3px 10px;border:1px solid var(--border-2);border-radius:20px;color:var(--text-2)}
+.pill.on{border-color:var(--green);color:var(--green)}
+
+/* Layout */
+.main{max-width:1200px;margin:0 auto;padding:32px 24px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+@media(max-width:900px){.grid2,.grid3{grid-template-columns:1fr}}
+
+/* Card */
+.card{background:var(--bg-2);border:1px solid var(--border);border-radius:var(--rl);padding:20px}
+.card-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px}
+.card-title{font-family:var(--mono);font-size:.7rem;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text-2)}
+
+/* Upload */
+#uz{border:2px dashed var(--border-2);border-radius:var(--rl);padding:56px 24px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;background:var(--bg-2);margin-bottom:24px}
+#uz:hover,#uz.dov{border-color:var(--accent);background:var(--accent-dim)}
+.ui{font-size:2rem;margin-bottom:12px;opacity:.6}
+.ut{font-size:1rem;font-weight:500;margin-bottom:6px}
+.us{font-size:.8rem;color:var(--text-2)}
+.us span{color:var(--accent);cursor:pointer}
+#fi{display:none}
+
+/* Provider selector */
+.provider-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.provider-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--r);border:1px solid var(--border-2);background:var(--bg-3);color:var(--text-2);font-family:var(--mono);font-size:.75rem;cursor:pointer;transition:all .15s}
+.provider-btn:hover{border-color:var(--text-2);color:var(--text)}
+.provider-btn.active{border-color:var(--accent);color:var(--accent);background:var(--accent-dim)}
+.provider-btn .dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0}
+
+/* Inputs */
+.api-row{display:flex;gap:12px;align-items:flex-end;margin-bottom:24px}
+.iw{flex:1}
+.il{font-size:.7rem;font-family:var(--mono);color:var(--text-2);margin-bottom:6px;display:block}
+.iw input{width:100%;background:var(--bg-3);border:1px solid var(--border-2);border-radius:var(--r);padding:10px 14px;color:var(--text);font-family:var(--mono);font-size:.8rem;outline:none;transition:border-color .2s}
+.iw input:focus{border-color:var(--accent)}
+.iw input::placeholder{color:var(--text-3)}
+
+/* Buttons */
+.btn{font-family:var(--mono);font-size:.8rem;font-weight:500;padding:10px 20px;border-radius:var(--r);border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.btn-p{background:var(--accent);color:#000}
+.btn-p:hover{background:#ffc740}
+.btn-p:disabled{background:var(--bg-3);color:var(--text-3);cursor:not-allowed}
+.btn-g{background:var(--bg-3);color:var(--text-2);border:1px solid var(--border-2)}
+.btn-g:hover{border-color:var(--text-2);color:var(--text)}
+.btn-export{background:var(--green-dim);color:var(--green);border:1px solid var(--green)}
+.btn-export:hover{background:var(--green);color:#000}
+
+/* Status bar — enhanced with step indicator */
+.sbar{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--bg-3);border:1px solid var(--border);border-radius:var(--r);margin-bottom:24px;font-family:var(--mono);font-size:.8rem;transition:all .3s}
+.pulse{width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse 1.2s infinite;flex-shrink:0}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.sbar.err .pulse{background:var(--red);animation:none}
+.sbar.ok .pulse{background:var(--green);animation:none}
+.sbar .step-indicator{margin-left:auto;font-size:.7rem;color:var(--text-3);flex-shrink:0}
+
+/* Score ring */
+.sh{display:flex;flex-direction:column;align-items:center;padding:32px 24px;gap:16px}
+.srw{position:relative;width:140px;height:140px}
+.srw svg{transform:rotate(-90deg)}
+.rbg{fill:none;stroke:var(--bg-4);stroke-width:10}
+.rfill{fill:none;stroke-width:10;stroke-linecap:round;stroke-dasharray:377;stroke-dashoffset:377;transition:stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1)}
+.rfill.green{stroke:var(--green)} .rfill.yellow{stroke:var(--yellow)}
+.rfill.orange{stroke:var(--accent)} .rfill.red{stroke:var(--red)}
+.sc{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.sn{font-family:var(--mono);font-size:2.2rem;font-weight:600;line-height:1}
+.sd{font-family:var(--mono);font-size:.7rem;color:var(--text-2)}
+.sl{font-size:.8rem;text-align:center;color:var(--text-2);max-width:160px}
+
+/* Metrics */
+.mr{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;border-radius:4px}
+.mr:last-child{border-bottom:none}
+.mr:hover{background:var(--bg-3);padding-left:8px;margin:0 -8px}
+.md{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:6px}
+.md.green{background:var(--green);box-shadow:0 0 6px var(--green)}
+.md.yellow{background:var(--yellow);box-shadow:0 0 6px var(--yellow)}
+.md.red{background:var(--red)} .md.unavailable{background:var(--text-3)}
+.mm{flex:1;min-width:0}
+.mn{font-size:.8rem;font-weight:500;margin-bottom:2px}
+.mb{font-size:.7rem;color:var(--text-2);font-family:var(--mono)}
+.mvc{text-align:right;flex-shrink:0}
+.mv{font-family:var(--mono);font-size:.85rem;font-weight:600}
+.mp{font-size:.7rem;color:var(--text-3);font-family:var(--mono)}
+.mv.green{color:var(--green)} .mv.yellow{color:var(--yellow)}
+.mv.red{color:var(--red)} .mv.unavailable{color:var(--text-3)}
+.mdet{overflow:hidden;max-height:0;transition:max-height .3s;padding-left:20px}
+.mdet.open{max-height:220px}
+.mdi{padding:10px 12px;background:var(--bg-3);border-radius:var(--r);font-size:.75rem;color:var(--text-2);line-height:1.6;margin:6px 0 10px;border-left:2px solid var(--border-2)}
+.mdf{font-family:var(--mono);font-size:.7rem;color:var(--accent);margin-top:6px}
+
+/* KPI */
+.kgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.kc{background:var(--bg-3);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px}
+.kl{font-size:.7rem;color:var(--text-2);font-family:var(--mono);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.kv{font-family:var(--mono);font-size:1.1rem;font-weight:600}
+.ks{font-size:.7rem;color:var(--text-3);margin-top:2px}
+
+/* Tables tag */
+.ttag{display:inline-flex;align-items:center;gap:6px;background:var(--bg-3);border:1px solid var(--border);border-radius:4px;padding:4px 10px;font-family:var(--mono);font-size:.7rem;color:var(--text-2)}
+.ttag.f{border-color:var(--green);color:var(--green);background:var(--green-dim)}
+.twrap{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+
+/* AI Highlights */
+.hi{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:.8rem}
+.hi:last-child{border-bottom:none}
+.hconf{font-family:var(--mono);font-size:.65rem;background:var(--bg-3);border:1px solid var(--border-2);border-radius:3px;padding:2px 6px;flex-shrink:0;align-self:flex-start;margin-top:2px}
+.hconf.hi-green{border-color:var(--green);color:var(--green)}
+.hconf.hi-yellow{border-color:var(--yellow);color:var(--yellow)}
+.hconf.hi-red{border-color:var(--red);color:var(--red)}
+.hbody{flex:1}
+.htext{margin-bottom:3px}
+.hreason{font-size:.7rem;color:var(--text-3);font-style:italic}
+
+/* SWOT */
+.swot-g{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.swc{background:var(--bg-3);border:1px solid var(--border);border-radius:var(--r);padding:12px}
+.swc h4{font-size:.65rem;font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px}
+.swc h4.s{color:var(--green)} .swc h4.w{color:var(--red)}
+.swc h4.o{color:var(--blue)} .swc h4.t{color:var(--yellow)}
+.swc ul{padding-left:0;list-style:none}
+.swc li{font-size:.75rem;color:var(--text-2);line-height:1.55;padding:3px 0;border-bottom:1px solid var(--border)}
+.swc li:last-child{border-bottom:none}
+.swc li::before{content:"→ ";color:var(--text-3)}
+
+/* Porter */
+.porter-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);font-size:.8rem}
+.porter-row:last-child{border-bottom:none}
+.porter-name{width:140px;flex-shrink:0;font-weight:500}
+.porter-bar-wrap{flex:1;display:flex;flex-direction:column;gap:4px}
+.porter-bg{height:5px;background:var(--bg-4);border-radius:3px;overflow:hidden}
+.porter-fill{height:100%;border-radius:3px;background:var(--accent);transition:width 1s cubic-bezier(.4,0,.2,1);width:0}
+.porter-comment{font-size:.7rem;color:var(--text-3)}
+.porter-badge{font-family:var(--mono);font-size:.65rem;padding:2px 8px;border-radius:3px;border:1px solid;flex-shrink:0;width:70px;text-align:center}
+.porter-badge.alta,.porter-badge.muito.alta{border-color:var(--red);color:var(--red);background:var(--red-dim)}
+.porter-badge.moderada,.porter-badge.moderado{border-color:var(--yellow);color:var(--yellow);background:var(--yellow-dim)}
+.porter-badge.baixo,.porter-badge.baixa{border-color:var(--green);color:var(--green);background:var(--green-dim)}
+
+/* Verdict */
+.vbadge{display:inline-block;font-family:var(--mono);font-size:.9rem;font-weight:700;padding:8px 22px;border-radius:var(--r);letter-spacing:.08em}
+.vbadge.COMPRAR,.vbadge.positive,.vbadge.buy{background:var(--green-dim);color:var(--green);border:1px solid var(--green)}
+.vbadge.AGUARDAR,.vbadge.neutral{background:var(--yellow-dim);color:var(--yellow);border:1px solid var(--yellow)}
+.vbadge.VENDER,.vbadge.negative,.vbadge.sell{background:var(--red-dim);color:var(--red);border:1px solid var(--red)}
+
+/* Score bars (risk/growth/reliability) */
+.score-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.score-row:last-child{border-bottom:none}
+.score-label{width:160px;flex-shrink:0}
+.score-name{font-size:.8rem;font-weight:500}
+.score-desc{font-size:.7rem;color:var(--text-3);margin-top:2px;line-height:1.4}
+.score-bar-wrap{flex:1}
+.score-bar-bg{height:6px;background:var(--bg-4);border-radius:3px;overflow:hidden}
+.score-bar-fill{height:100%;border-radius:3px;transition:width 1s ease;background:var(--accent);width:0}
+.score-val{font-family:var(--mono);font-size:.85rem;font-weight:600;width:50px;text-align:right;flex-shrink:0}
+.score-tag{font-family:var(--mono);font-size:.65rem;padding:2px 7px;border-radius:3px;border:1px solid var(--border-2);color:var(--text-2);flex-shrink:0}
+
+/* Contradictions */
+.contra-row{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:.8rem}
+.contra-row:last-child{border-bottom:none}
+.contra-icon{flex-shrink:0;font-size:.9rem;margin-top:1px}
+
+/* Lists (catalysts / risks) */
+.list-item{display:flex;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);font-size:.8rem;color:var(--text-2)}
+.list-item:last-child{border-bottom:none}
+.list-arrow{color:var(--accent);flex-shrink:0;font-weight:600}
+.list-flag{color:var(--red);flex-shrink:0}
+
+/* Prose sections */
+.prose{font-size:.8rem;color:var(--text-2);line-height:1.7}
+
+/* Provider badge */
+.prov-badge{font-family:var(--mono);font-size:.65rem;padding:2px 8px;border-radius:10px;border:1px solid var(--border-2);color:var(--text-2)}
+.prov-badge.anthropic{border-color:var(--accent);color:var(--accent)}
+.prov-badge.openai{border-color:var(--green);color:var(--green)}
+.prov-badge.gemini{border-color:var(--blue);color:var(--blue)}
+
+/* Tabs */
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:20px;overflow-x:auto}
+.tab{font-family:var(--mono);font-size:.75rem;padding:8px 16px;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-2);transition:all .15s;background:none;border-top:none;border-left:none;border-right:none;white-space:nowrap}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tpanel{display:none}
+.tpanel.active{display:block}
+
+/* Table Viewer */
+.tview-card{background:var(--bg-2);border:1px solid var(--border);border-radius:var(--rl);margin-bottom:16px;overflow:hidden}
+.tview-hd{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--bg-3);border-bottom:1px solid var(--border);cursor:pointer;user-select:none;gap:12px}
+.tview-hd:hover{background:var(--bg-4)}
+.tview-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.tview-title{font-family:var(--mono);font-size:.75rem;font-weight:600;color:var(--text)}
+.tview-sub{font-family:var(--mono);font-size:.65rem;color:var(--text-3)}
+.tview-badge{font-family:var(--mono);font-size:.65rem;padding:2px 8px;border-radius:3px;border:1px solid var(--green);color:var(--green);background:var(--green-dim)}
+.tview-conf{font-family:var(--mono);font-size:.65rem;color:var(--text-3)}
+.tview-chevron{font-size:.75rem;color:var(--text-3);transition:transform .2s;flex-shrink:0}
+.tview-card.open .tview-chevron{transform:rotate(90deg)}
+.tview-body{display:none;overflow-x:auto;max-height:480px;overflow-y:auto}
+.tview-card.open .tview-body{display:block}
+.ftable{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:.72rem}
+.ftable th{background:var(--bg-4);color:var(--text-2);padding:6px 12px;text-align:left;border-bottom:1px solid var(--border-2);position:sticky;top:0;white-space:nowrap;font-weight:600;letter-spacing:.04em}
+.ftable th:first-child{min-width:220px}
+.ftable td{padding:5px 12px;border-bottom:1px solid var(--border);color:var(--text-2);vertical-align:top;white-space:nowrap}
+.ftable td:first-child{color:var(--text);min-width:220px;white-space:normal;max-width:320px}
+.ftable tr.total-row td{color:var(--accent);font-weight:600;background:var(--accent-dim)}
+.ftable tr.section-row td{color:var(--text-3);font-style:italic;background:var(--bg-3)}
+.ftable tr:hover td{background:var(--bg-3)}
+.ftable td.num{text-align:right;color:var(--text)}
+.ftable td.num.neg{color:var(--red)}
+
+/* AI loading placeholder */
+.ai-loading{text-align:center;padding:48px 24px}
+.ai-loading .spinner-sm{width:32px;height:32px;border:3px solid var(--border-2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.tg{color:var(--green)} .ty{color:var(--yellow)} .tr{color:var(--red)} .td{color:var(--text-2)}
+.mt4{margin-top:4px} .mt8{margin-top:8px} .mt16{margin-top:16px} .mt24{margin-top:24px} .mb24{margin-bottom:24px}
+.flex{display:flex;align-items:center} .sm{font-size:.75rem}
+.fi{animation:fi .4s ease both}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.pnote{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:.7rem;color:var(--accent);background:var(--accent-dim);border:1px solid var(--accent);border-radius:4px;padding:3px 10px}
+.dbtn{font-family:var(--mono);font-size:.7rem;color:var(--text-3);cursor:pointer;background:none;border:none;display:flex;align-items:center;gap:6px;padding:8px 0}
+.dbtn:hover{color:var(--text-2)}
+.dpre{background:var(--bg-3);border:1px solid var(--border);border-radius:var(--r);padding:12px;font-family:var(--mono);font-size:.7rem;color:var(--text-2);overflow-x:auto;white-space:pre-wrap;max-height:300px;overflow-y:auto;display:none}
+.kv-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}
+.kv-row:last-child{border-bottom:none}
+.kv-lbl{font-size:.8rem;color:var(--text-2)}
+.kv-val{font-family:var(--mono);font-size:.85rem;font-weight:500}
+.errbox{background:var(--red-dim);border:1px solid var(--red);border-radius:var(--r);padding:14px 16px;font-family:var(--mono);font-size:.75rem;color:var(--red);margin-top:8px;white-space:pre-wrap;display:none}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <svg viewBox="0 0 28 28" fill="none">
+    <rect x="2" y="18" width="4" height="8" rx="1" fill="#f0b429"/>
+    <rect x="8" y="12" width="4" height="14" rx="1" fill="#f0b429" opacity=".8"/>
+    <rect x="14" y="6" width="4" height="20" rx="1" fill="#f0b429" opacity=".6"/>
+    <rect x="20" y="2" width="4" height="24" rx="1" fill="#f0b429" opacity=".4"/>
+    <path d="M3 18L9 12L15 6L22 2" stroke="#f0b429" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity=".5"/>
+  </svg>
+  <div><div class="topbar-title">FinStatement</div><div class="topbar-sub">Buffett Score Engine v3</div></div>
+  <div class="topbar-spacer"></div>
+  <div id="sv-badge" class="pill">conectando…</div>
+</header>
+
+<main class="main">
+  <!-- Upload -->
+  <div id="upload-sec">
+    <div id="uz" role="button" tabindex="0">
+      <div class="ui">📄</div>
+      <div class="ut">Arraste um PDF de demonstrações financeiras</div>
+      <div class="us">ou <span id="blink">selecione um arquivo</span> · BB · BTG · Suzano · Petrobras · Itaú</div>
+      <input type="file" id="fi" accept=".pdf">
+    </div>
+    <div style="margin-bottom:12px">
+      <span class="il" style="display:block;margin-bottom:8px">Provedor de IA <span class="td">(opcional — para Análise IA)</span></span>
+      <div class="provider-row">
+        <button class="provider-btn active" data-provider="auto"><span class="dot"></span>Auto-detect</button>
+        <button class="provider-btn" data-provider="anthropic"><span class="dot"></span>Claude (Anthropic)</button>
+        <button class="provider-btn" data-provider="openai"><span class="dot"></span>GPT-4o (OpenAI)</button>
+        <button class="provider-btn" data-provider="gemini"><span class="dot"></span>Gemini (Google)</button>
+      </div>
+    </div>
+    <div class="api-row">
+      <div class="iw">
+        <label class="il" for="ak">API Key <span class="td">(sk-ant-... · sk-... · AIza...)</span></label>
+        <input type="password" id="ak" placeholder="Cole sua API key aqui" autocomplete="off">
+      </div>
+      <button id="run-btn" class="btn btn-p" disabled>⚡ Analisar</button>
+    </div>
+  </div>
+
+  <div id="sbar" class="sbar hidden" role="status" aria-live="polite">
+    <div class="pulse" id="sp"></div>
+    <span id="st" class="mono">Aguardando…</span>
+    <span id="step-ind" class="step-indicator"></span>
+  </div>
+  <div id="errbox" class="errbox"></div>
+
+  <!-- Results -->
+  <div id="results" class="hidden fi">
+    <div class="card mb24">
+      <div class="flex" style="justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <div>
+          <div class="flex" style="gap:10px;flex-wrap:wrap">
+            <h1 id="r-co" style="font-size:1.4rem;font-weight:600;letter-spacing:-.02em">—</h1>
+            <span id="r-pnote" class="pnote hidden">—</span>
+          </div>
+          <div class="flex mt4" style="gap:8px;flex-wrap:wrap">
+            <span id="r-per" class="td sm mono">—</span><span class="td sm">·</span>
+            <span id="r-cur" class="td sm mono">—</span><span class="td sm">·</span>
+            <span id="r-doc" class="td sm mono">—</span>
+          </div>
+        </div>
+        <div class="flex" style="gap:8px;flex-wrap:wrap">
+          <button class="btn btn-export" id="export-btn">📥 Exportar Excel</button>
+          <button class="btn btn-g" id="reset-btn">↩ Nova análise</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab active" data-tab="score">📊 Buffett Score</button>
+      <button class="tab" data-tab="fin">📋 Demonstrações</button>
+      <button class="tab" data-tab="tbl">🗂 Tabelas</button>
+      <button class="tab" id="ai-tab-btn" data-tab="ai">✨ Análise IA</button>
+    </div>
+
+    <!-- Score tab -->
+    <div class="tpanel active" id="tab-score">
+      <div class="grid2">
+        <div class="card">
+          <div class="card-hd"><span class="card-title">Buffett Score</span><span id="r-sec" class="pill">—</span></div>
+          <div class="sh">
+            <div class="srw">
+              <svg width="140" height="140" viewBox="0 0 140 140">
+                <circle class="rbg" cx="70" cy="70" r="60"/>
+                <circle id="sr" class="rfill" cx="70" cy="70" r="60"/>
+              </svg>
+              <div class="sc"><span id="r-sn" class="sn">—</span><span class="sd">/100</span></div>
+            </div>
+            <div id="r-sl" class="sl td">—</div>
+            <div id="r-pts" class="td sm mono">—</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><span class="card-title">Indicadores-Chave</span><span id="r-ann" class="pnote hidden">—</span></div>
+          <div id="kgrid" class="kgrid"></div>
+        </div>
+      </div>
+      <div class="card mt16">
+        <div class="card-hd"><span class="card-title">Métricas Detalhadas</span><span class="td sm">clique para expandir</span></div>
+        <div id="mlist"></div>
+      </div>
+    </div>
+
+    <!-- Fin tab -->
+    <div class="tpanel" id="tab-fin">
+      <div class="grid2">
+        <div class="card">
+          <div class="card-hd"><span class="card-title">Demonstração do Resultado</span><span id="r-ann2" class="pnote hidden">—</span></div>
+          <div id="inc-tbl"></div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><span class="card-title">Balanço Patrimonial</span></div>
+          <div id="bal-tbl"></div>
+        </div>
+      </div>
+      <div id="bk-card" class="card mt16 hidden">
+        <div class="card-hd"><span class="card-title">Métricas Bancárias</span></div>
+        <div id="bk-tbl"></div>
+      </div>
+    </div>
+
+    <!-- Tables tab -->
+    <div class="tpanel" id="tab-tbl">
+      <div class="card mb24">
+        <div class="card-hd"><span class="card-title">Tabelas Detectadas</span><span id="tbl-count" class="td sm mono"></span></div>
+        <div id="tdetect" class="twrap"></div>
+      </div>
+      <div id="tview-list"></div>
+      <div class="mt16">
+        <button class="dbtn" id="dtbtn">▶ Debug info</button>
+        <pre id="dpre" class="dpre"></pre>
+      </div>
+    </div>
+
+    <!-- AI tab -->
+    <div class="tpanel" id="tab-ai">
+      <div id="ai-nokey" class="card" style="text-align:center;padding:48px 24px">
+        <div style="font-size:1.5rem;margin-bottom:12px">✨</div>
+        <h2 style="margin-bottom:8px">Análise de IA não disponível</h2>
+        <p class="td sm" style="max-width:420px;margin:0 auto">Insira uma API Key (Claude, OpenAI ou Gemini) e clique em Analisar para obter destaques, SWOT, Porter, posicionamento e veredito de investimento.</p>
+      </div>
+
+      <!-- AI loading state — visible while waiting for AI response -->
+      <div id="ai-loading" class="card ai-loading hidden">
+        <div class="spinner-sm"></div>
+        <p class="mono" style="font-size:.8rem;color:var(--text-2)" id="ai-loading-text">Gerando análise de IA…</p>
+      </div>
+
+      <div id="ai-body" class="hidden">
+        <div class="card mb24">
+          <div class="card-hd">
+            <span class="card-title">Veredito de Investimento</span>
+            <div class="flex" style="gap:8px">
+              <span id="ai-conf-badge" class="pill">—</span>
+              <span id="ai-prov-badge" class="prov-badge hidden">—</span>
+            </div>
+          </div>
+          <div class="flex" style="gap:16px;flex-wrap:wrap;align-items:flex-start">
+            <div>
+              <span id="ai-vbadge" class="vbadge">—</span>
+              <p id="ai-vsumm" class="td sm mt8" style="line-height:1.6;max-width:480px">—</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="card mb24">
+          <div class="card-hd"><span class="card-title">Métricas de Decisão</span></div>
+          <div id="ai-scores"></div>
+        </div>
+
+        <div class="grid2 mb24">
+          <div class="card">
+            <div class="card-hd"><span class="card-title">✅ Destaques do Período</span></div>
+            <div id="ai-hl"></div>
+          </div>
+          <div class="card">
+            <div class="card-hd"><span class="card-title">⚠️ Desafios e Riscos</span></div>
+            <div id="ai-ch"></div>
+          </div>
+        </div>
+
+        <div class="card mb24">
+          <div class="card-hd"><span class="card-title">🔲 Análise SWOT</span></div>
+          <div class="swot-g" id="ai-swot"></div>
+        </div>
+
+        <div class="card mb24">
+          <div class="card-hd"><span class="card-title">⚙️ As 5 Forças de Porter</span></div>
+          <div id="ai-porter"></div>
+        </div>
+
+        <div class="grid2 mb24">
+          <div class="card">
+            <div class="card-hd"><span class="card-title">🏢 Posicionamento de Mercado</span></div>
+            <p id="ai-mktpos" class="prose">—</p>
+          </div>
+          <div class="card">
+            <div class="card-hd"><span class="card-title">📋 Gestão e Governança</span></div>
+            <p id="ai-admin" class="prose">—</p>
+          </div>
+        </div>
+
+        <div class="card mb24">
+          <div class="card-hd"><span class="card-title">🔍 Confiabilidade do Relatório</span></div>
+          <p id="ai-ir" class="prose">—</p>
+        </div>
+
+        <div class="grid2 mb24">
+          <div class="card">
+            <div class="card-hd"><span class="card-title">⚡ Catalisadores</span></div>
+            <div id="ai-cats"></div>
+          </div>
+          <div class="card">
+            <div class="card-hd"><span class="card-title">⚑ Riscos Principais</span></div>
+            <div id="ai-risks"></div>
+          </div>
+        </div>
+
+        <div class="card mb24">
+          <div class="card-hd"><span class="card-title">🔍 Consistência e Contradições</span></div>
+          <div id="ai-contra"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-hd"><span class="card-title">⚖️ Conclusão Final</span></div>
+          <p id="ai-final" class="prose" style="font-size:.85rem;line-height:1.75">—</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════════
+   FinStatement Frontend v3.0
+   - Two-phase loading: extraction → AI (results shown immediately)
+   - Rotating status messages during AI generation
+   - Clean module separation
+   ══════════════════════════════════════════════════════════════════════ */
+
+const CONFIG = Object.freeze({ apiBase: window.FINSTATEMENT_API_URL || '', metricDelay: 60 });
+
+/* ── Shared state ────────────────────────────────────────────────────── */
+let _lastData = null;
+
+/* ── DOM helpers ─────────────────────────────────────────────────────── */
+const $ = id => document.getElementById(id);
+const set = (id, v) => { const e = $(id); if (e) e.textContent = v ?? '—'; };
+
+/* ── API client ──────────────────────────────────────────────────────── */
+const API = (() => {
+  class ApiError extends Error {
+    constructor(msg, status, detail) {
+      super(msg);
+      this.status = status;
+      this.detail = detail || null;
+    }
+  }
+
+  async function req(path, opts = {}) {
+    let r;
+    try {
+      r = await fetch(CONFIG.apiBase + path, opts);
+    } catch (e) {
+      throw new ApiError(
+        'Backend inacessível. Certifique-se que o servidor Python está rodando em localhost:8000',
+        0, e.message
+      );
+    }
+    const body = await r.json().catch(() => null);
+    if (!r.ok) {
+      throw new ApiError(
+        body?.error || `HTTP ${r.status}`,
+        r.status,
+        body ? JSON.stringify(body, null, 2) : null
+      );
+    }
+    return body;
+  }
+
+  return {
+    health: () => req('/health'),
+    analyze(f) {
+      const d = new FormData();
+      d.append('file', f);
+      return req('/api/v1/analyze', { method: 'POST', body: d });
+    },
+    withAI(f, key, provider) {
+      const d = new FormData();
+      d.append('file', f);
+      if (key) d.append('api_key', key);
+      if (provider && provider !== 'auto') d.append('provider', provider);
+      return req('/api/v1/analyze/insights', { method: 'POST', body: d });
+    },
+    ApiError,
+  };
+})();
+
+/* ── Formatters ──────────────────────────────────────────────────────── */
+const FMT = (() => {
+  const isNil = v => v == null || isNaN(v);
+  return {
+    cur(v) {
+      if (isNil(v)) return 'N/D';
+      const a = Math.abs(v), s = v < 0 ? '−' : '';
+      if (a >= 1e6) return `${s}R$${(a/1e6).toFixed(1)}T`;
+      if (a >= 1e3) return `${s}R$${(a/1e3).toFixed(1)}B`;
+      return `${s}R$${a.toLocaleString('pt-BR',{maximumFractionDigits:0})}M`;
+    },
+    pct(v, d=1) { return isNil(v) ? 'N/D' : `${(v*100).toFixed(d)}%`; },
+    col(s) { return {green:'green',yellow:'yellow',red:'red'}[s] ?? 'unavailable'; },
+    ring(n) { if (n>=70) return 'green'; if (n>=50) return 'yellow'; if (n>=30) return 'orange'; return 'red'; },
+    confClass(n) { return n >= 8 ? 'hi-green' : n >= 6 ? 'hi-yellow' : 'hi-red'; },
+  };
+})();
+
+/* ── Status bar with rotating messages ───────────────────────────────── */
+const Status = (() => {
+  let _rotateTimer = null;
+
+  function _bar()  { return $('sbar'); }
+  function _box()  { return $('errbox'); }
+  function _step() { return $('step-ind'); }
+
+  return {
+    show(msg, type = 'load', step = '') {
+      const b = _bar();
+      b.classList.remove('hidden', 'err', 'ok');
+      if (type === 'err') b.classList.add('err');
+      if (type === 'ok')  b.classList.add('ok');
+      $('st').textContent = msg;
+      _step().textContent = step;
+    },
+
+    /** Show rotating messages during long operations (AI generation) */
+    startRotating(messages, step = '') {
+      this.stopRotating();
+      let i = 0;
+      this.show(messages[0], 'load', step);
+      _rotateTimer = setInterval(() => {
+        i = (i + 1) % messages.length;
+        $('st').textContent = messages[i];
+      }, 3500);
+    },
+
+    stopRotating() {
+      if (_rotateTimer) {
+        clearInterval(_rotateTimer);
+        _rotateTimer = null;
+      }
+    },
+
+    showError(msg, detail) {
+      this.stopRotating();
+      this.show(`❌ ${msg}`, 'err');
+      if (detail) { _box().textContent = detail; _box().style.display = 'block'; }
+    },
+
+    hide() {
+      this.stopRotating();
+      _bar().classList.add('hidden');
+      _box().style.display = 'none';
+      _box().textContent = '';
+    },
+  };
+})();
+
+/* ── Provider Picker ─────────────────────────────────────────────────── */
+const ProviderPicker = (() => {
+  let _sel = 'auto';
+  const hints = {
+    auto: 'Cole sua API key aqui',
+    anthropic: 'sk-ant-api03-…',
+    openai: 'sk-…',
+    gemini: 'AIzaSy…',
+  };
+
+  function init() {
+    document.querySelectorAll('.provider-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.provider-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        _sel = btn.dataset.provider;
+        $('ak').placeholder = hints[_sel] || hints.auto;
+      });
+    });
+  }
+
+  return { init, get selected() { return _sel; } };
+})();
+
+/* ── Uploader ────────────────────────────────────────────────────────── */
+const Uploader = (() => {
+  function init(onFileSelected) {
+    const zone = $('uz'), inp = $('fi');
+
+    zone.addEventListener('click', () => inp.click());
+    $('blink').addEventListener('click', e => { e.stopPropagation(); inp.click(); });
+    inp.addEventListener('change', () => inp.files[0] && onFileSelected(inp.files[0]));
+
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dov'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('dov'));
+    zone.addEventListener('drop', e => {
+      e.preventDefault();
+      zone.classList.remove('dov');
+      const f = e.dataTransfer.files[0];
+      if (f?.name.toLowerCase().endsWith('.pdf')) onFileSelected(f);
+    });
+    zone.addEventListener('keydown', e => e.key === 'Enter' && inp.click());
+  }
+  return { init };
+})();
+
+/* ── Tabs ────────────────────────────────────────────────────────────── */
+const Tabs = (() => {
+  function init() {
+    document.querySelectorAll('.tab').forEach(t => {
+      t.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+        document.querySelectorAll('.tpanel').forEach(x => x.classList.remove('active'));
+        t.classList.add('active');
+        $(`tab-${t.dataset.tab}`)?.classList.add('active');
+      });
+    });
+  }
+  return { init };
+})();
+
+/* ── Renderer ────────────────────────────────────────────────────────── */
+const Renderer = (() => {
+  function kv(label, value, cls = '') {
+    return `<div class="kv-row"><span class="kv-lbl">${label}</span><span class="kv-val ${cls}">${value}</span></div>`;
+  }
+
+  function renderMeta(meta, af, sector) {
+    set('r-co', meta.company || 'Empresa não identificada');
+    set('r-per', meta.period || '—');
+    set('r-cur', meta.currency);
+    set('r-doc', meta.doc_type);
+    if (af > 1) {
+      const txt = `${af === 4 ? 'Trimestral' : 'Semestral'} · ×${af} anualizado`;
+      ['r-pnote','r-ann','r-ann2'].forEach(id => {
+        const e = $(id);
+        if (e) { e.textContent = txt; e.classList.remove('hidden'); }
+      });
+    }
+    set('r-sec', sector === 'bank' ? '🏦 Banco' : '🏭 Industrial');
+  }
+
+  function renderScore(buf) {
+    const n = buf.score_100, c = FMT.ring(n);
+    set('r-sn', n);
+    set('r-sl', buf.label);
+    set('r-pts', `${buf.total_points} / ${buf.max_points} pts`);
+    const ring = $('sr');
+    ring.className = `rfill ${c}`;
+    requestAnimationFrame(() => {
+      setTimeout(() => { ring.style.strokeDashoffset = 377 * (1 - n / 100); }, 120);
+    });
+  }
+
+  function renderKpis(inc, bal, bk, sector) {
+    const items = [];
+    const add = (l, v, s) => items.push(
+      `<div class="kc"><div class="kl">${l}</div><div class="kv">${v}</div>${s ? `<div class="ks">${s}</div>` : ''}</div>`
+    );
+
+    if (sector === 'bank' && bk) {
+      if (bk.roe != null) add('ROE', FMT.pct(bk.roe), 'Retorno s/ PL');
+      if (bk.roa != null) add('ROA', FMT.pct(bk.roa), 'Retorno s/ Ativos');
+      if (bk.efficiency_ratio != null) add('Eficiência', FMT.pct(bk.efficiency_ratio), 'Desp.Adm/MFB');
+      if (bk.npl_ratio != null) add('Inadimpl.+90d', FMT.pct(bk.npl_ratio), 'NPL');
+      if (bk.basel_ratio != null) add('Basileia', FMT.pct(bk.basel_ratio), 'Índice capital');
+    } else {
+      const mb = inc.gross_profit && inc.revenue ? inc.gross_profit / inc.revenue : null;
+      const ml = inc.net_income && inc.revenue ? inc.net_income / inc.revenue : null;
+      const roe = inc.net_income && bal.equity ? inc.net_income / Math.abs(bal.equity) : null;
+      if (mb != null) add('Margem Bruta', FMT.pct(mb), 'LB/Receita');
+      if (ml != null) add('Margem Líquida', FMT.pct(ml), 'LL/Receita');
+      if (roe != null) add('ROE', FMT.pct(roe), 'LL/PL');
+      if (inc.net_income != null) add('Lucro Líquido', FMT.cur(inc.net_income), 'R$M');
+    }
+    if (bal.total_assets != null) add('Ativo Total', FMT.cur(bal.total_assets), 'R$M');
+    $('kgrid').innerHTML = items.join('');
+  }
+
+  function renderMetrics(metrics) {
+    const list = $('mlist');
+    list.innerHTML = metrics.map((m, i) => {
+      const c = FMT.col(m.status);
+      return `<div class="mr fi" style="animation-delay:${i*CONFIG.metricDelay}ms" data-i="${i}">
+        <div class="md ${c}"></div>
+        <div class="mm"><div class="mn">${m.name}</div><div class="mb">${m.benchmark}</div></div>
+        <div class="mvc"><div class="mv ${c}">${m.formatted_value}</div><div class="mp">${m.points}/${m.max_points}</div></div>
+      </div>
+      <div class="mdet" id="md${i}">
+        <div class="mdi">${m.explanation}<div class="mdf">⟩ ${m.formula}</div></div>
+      </div>`;
+    }).join('');
+    list.querySelectorAll('.mr').forEach(r =>
+      r.addEventListener('click', () => $(`md${r.dataset.i}`)?.classList.toggle('open'))
+    );
+  }
+
+  function renderFin(inc, bal, bk) {
+    const incRows = [
+      ['Receita Líquida/MFB', inc.revenue], ['Lucro Bruto', inc.gross_profit],
+      ['Lucro Líquido', inc.net_income], ['Resultado Operacional', inc.operating_income],
+      ['Despesas G&A', inc.ga_expenses ? -Math.abs(inc.ga_expenses) : null],
+      ['D&A', inc.da_expenses ? -Math.abs(inc.da_expenses) : null],
+      ['Despesas Financeiras', inc.interest_expenses ? -Math.abs(inc.interest_expenses) : null],
+      ['FCO', inc.operating_cash_flow], ['CapEx', inc.capex ? -Math.abs(inc.capex) : null],
+    ];
+    $('inc-tbl').innerHTML = incRows
+      .filter(([,v]) => v != null)
+      .map(([l,v]) => kv(l, FMT.cur(v), v < 0 ? 'tr' : ''))
+      .join('') || '<p class="td sm">Dados não encontrados.</p>';
+
+    const balRows = [
+      ['Ativo Total', bal.total_assets], ['Ativo Circulante', bal.current_assets],
+      ['Passivo Circulante', bal.current_liabilities], ['Patrimônio Líquido', bal.equity],
+      ['Dívida Bruta', bal.gross_debt], ['Lucros Acumulados', bal.retained_earnings],
+      ['Ações em Tesouraria', bal.treasury_shares],
+    ];
+    $('bal-tbl').innerHTML = balRows
+      .filter(([,v]) => v != null)
+      .map(([l,v]) => kv(l, FMT.cur(v), v < 0 ? 'tr' : ''))
+      .join('') || '<p class="td sm">Dados não encontrados.</p>';
+
+    if (bk) {
+      $('bk-card').classList.remove('hidden');
+      const br = [
+        ['MFB', bk.mfb], ['Custo Crédito', bk.credit_cost ? -bk.credit_cost : null],
+        ['Desp.Adm', bk.admin_expenses ? -bk.admin_expenses : null],
+        ['Rec.Serviços', bk.service_revenue],
+        ['ROE', bk.roe != null ? FMT.pct(bk.roe) : null, true],
+        ['ROA', bk.roa != null ? FMT.pct(bk.roa) : null, true],
+        ['Eficiência', bk.efficiency_ratio != null ? FMT.pct(bk.efficiency_ratio) : null, true],
+        ['Inadimpl.+90d', bk.npl_ratio != null ? FMT.pct(bk.npl_ratio) : null, true],
+        ['Basileia', bk.basel_ratio != null ? FMT.pct(bk.basel_ratio) : null, true],
+      ];
+      $('bk-tbl').innerHTML = br
+        .filter(([,v]) => v != null)
+        .map(([l,v,p]) => kv(l, p ? v : FMT.cur(v), !p && v < 0 ? 'tr' : ''))
+        .join('');
+    }
+  }
+
+  function renderTables(tables, debug, tablesDetail) {
+    const lbls = {
+      dre:'DRE', balanco:'Balanço', dfc:'DFC', ebitda:'EBITDA/DVA',
+      kpis:'KPIs', divida:'Dívida', sgda:'SG&A', destaques_banco:'Destaques Banco'
+    };
+
+    $('tdetect').innerHTML = tables.map(t => {
+      const base = t.id.replace(/_\d+$/, '');
+      return `<div class="ttag f" title="${t.title} · Pág.${t.page}">✅ ${lbls[base] || t.id} <span style="color:var(--text-3)">·${t.rows}r</span></div>`;
+    }).join('') || '<span class="td sm">Nenhuma tabela.</span>';
+    $('tbl-count').textContent = `${tables.length} tabela${tables.length !== 1 ? 's' : ''}`;
+
+    const container = $('tview-list');
+    container.innerHTML = '';
+    const detail = tablesDetail || [];
+
+    if (!detail.length) {
+      container.innerHTML = '<p class="td sm">Dados detalhados não disponíveis.</p>';
+    } else {
+      detail.forEach((t, idx) => {
+        const base = t.id.replace(/_\d+$/, '');
+        const label = lbls[base] || t.id;
+        const confPct = Math.round((t.confidence || 0) * 100);
+        const cols = t.columns || [];
+        const rows = t.rows || [];
+
+        const headerCells = cols.map((c, i) =>
+          `<th${i > 0 ? ' class="num"' : ''}>${c || `Col${i+1}`}</th>`
+        ).join('');
+
+        const bodyCells = rows.map(r => {
+          const isTotal = /^(total|ativo\s*total|passivo\s*total|receita|lucro|resultado|patrimônio|patrim)/i.test(r.label || '');
+          const isSection = /^\s*\|{1,2}|^ativo\s*circ|^passivo\s*circ|^atividades?/i.test(r.label || '');
+          const rowClass = isTotal ? 'total-row' : isSection ? 'section-row' : '';
+          const vals = (r.values || []).map((v, i) => {
+            if (i === 0) return '';
+            const isNeg = /^\s*[\(\-]/.test(String(v || ''));
+            return `<td class="num${isNeg ? ' neg' : ''}">${v || ''}</td>`;
+          }).join('');
+          return `<tr class="${rowClass}"><td>${r.label || ''}</td>${vals}</tr>`;
+        }).join('');
+
+        const card = document.createElement('div');
+        card.className = 'tview-card' + (idx === 0 ? ' open' : '');
+        card.innerHTML = `
+          <div class="tview-hd">
+            <div class="tview-meta">
+              <span class="tview-badge">${label}</span>
+              <span class="tview-title">${t.title}</span>
+              <span class="tview-sub">Pág. ${t.page} · ${rows.length} linhas · ${cols.length} colunas</span>
+              <span class="tview-conf">${confPct}% conf.</span>
+              ${t.from_destaques ? '<span class="tview-sub" style="color:var(--accent)">⚡ destaques</span>' : ''}
+            </div>
+            <span class="tview-chevron">▶</span>
+          </div>
+          <div class="tview-body">
+            <table class="ftable">
+              <thead><tr>${headerCells}</tr></thead>
+              <tbody>${bodyCells || '<tr><td class="td sm" colspan="99">Sem linhas.</td></tr>'}</tbody>
+            </table>
+          </div>`;
+        card.querySelector('.tview-hd').addEventListener('click', () => card.classList.toggle('open'));
+        container.appendChild(card);
+      });
+    }
+
+    $('dpre').textContent = JSON.stringify(debug, null, 2);
+    const btn = $('dtbtn');
+    const newBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn, btn);
+    newBtn.addEventListener('click', () => {
+      const pre = $('dpre');
+      const open = pre.style.display === 'block';
+      pre.style.display = open ? 'none' : 'block';
+      newBtn.textContent = (open ? '▶' : '▼') + ' Debug info';
+    });
+  }
+
+  function renderHighlights(arr, elId) {
+    const el = $(elId);
+    if (!arr?.length) { el.innerHTML = '<p class="td sm">—</p>'; return; }
+    el.innerHTML = arr.map(h => {
+      const cc = FMT.confClass(h.confidence || 7);
+      return `<div class="hi">
+        <span class="hconf ${cc}">${h.confidence || '?'}/10</span>
+        <div class="hbody">
+          <div class="htext">${h.text || ''}</div>
+          <div class="hreason">${h.reason || ''}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  /** Show AI loading placeholder in the AI tab */
+  function showAiLoading() {
+    $('ai-nokey').classList.add('hidden');
+    $('ai-body').classList.add('hidden');
+    $('ai-loading').classList.remove('hidden');
+  }
+
+  /** Hide AI loading placeholder */
+  function hideAiLoading() {
+    $('ai-loading').classList.add('hidden');
+  }
+
+  function renderAI(ins) {
+    hideAiLoading();
+
+    if (!ins) {
+      $('ai-nokey').classList.remove('hidden');
+      $('ai-body').classList.add('hidden');
+      return;
+    }
+
+    $('ai-nokey').classList.add('hidden');
+    $('ai-body').classList.remove('hidden');
+
+    // Provider badge
+    const pb = $('ai-prov-badge');
+    if (ins.provider) {
+      pb.textContent = `via ${ins.provider}`;
+      pb.className = `prov-badge ${ins.provider}`;
+      pb.classList.remove('hidden');
+    }
+
+    const a = ins.analysis || {};
+    const c = ins.conclusion || {};
+
+    // Verdict
+    const verdict = c.verdict || '—';
+    const vb = $('ai-vbadge');
+    vb.textContent = verdict;
+    vb.className = `vbadge ${c.verdictClass || verdict}`;
+    set('ai-vsumm', c.summary);
+    $('ai-conf-badge').textContent = `⚠ Confiança: ${c.confidenceLevel || '—'}`;
+
+    // Decision scores
+    const scores = [
+      { name: 'Nível de Risco', v: c.riskScore, label: c.riskLabel, desc: c.riskDesc, invert: true },
+      { name: 'Perspectiva de Crescimento', v: c.growthScore, label: c.growthLabel, desc: c.growthDesc },
+      { name: 'Confiabilidade do RI', v: c.reliabilityScore, label: c.reliabilityLabel, desc: c.reliabilityDesc },
+    ];
+    $('ai-scores').innerHTML = scores.map(s => `
+      <div class="score-row">
+        <div class="score-label"><div class="score-name">${s.name}</div><div class="score-desc">${s.desc || ''}</div></div>
+        <div class="score-bar-wrap">
+          <div class="score-bar-bg"><div class="score-bar-fill" data-v="${s.v || 0}" style="width:0;background:${s.invert ? 'var(--red)' : 'var(--accent)'}"></div></div>
+        </div>
+        <span class="score-val">${s.v != null ? `${s.v}/10` : '—'}</span>
+        <span class="score-tag">${s.label || ''}</span>
+      </div>`).join('');
+    setTimeout(() => {
+      document.querySelectorAll('.score-bar-fill').forEach(b => {
+        b.style.width = `${(+b.dataset.v / 10) * 100}%`;
+      });
+    }, 200);
+
+    // Highlights / challenges
+    renderHighlights(a.highlights, 'ai-hl');
+    renderHighlights(a.challenges, 'ai-ch');
+
+    // SWOT
+    const sw = a.swot || {};
+    const toList = arr => (Array.isArray(arr) ? arr : [arr]).filter(Boolean).map(x => `<li>${x}</li>`).join('');
+    $('ai-swot').innerHTML = `
+      <div class="swc"><h4 class="s">Forças</h4><ul>${toList(sw.strengths)}</ul></div>
+      <div class="swc"><h4 class="w">Fraquezas</h4><ul>${toList(sw.weaknesses)}</ul></div>
+      <div class="swc"><h4 class="o">Oportunidades</h4><ul>${toList(sw.opportunities)}</ul></div>
+      <div class="swc"><h4 class="t">Ameaças</h4><ul>${toList(sw.threats)}</ul></div>`;
+
+    // Porter
+    const porter = a.porter || {};
+    const porterLabels = {
+      rivalry: 'Rivalidade', newEntrants: 'Novos Entrantes',
+      suppliers: 'Fornecedores', buyers: 'Compradores', substitutes: 'Substitutos'
+    };
+    $('ai-porter').innerHTML = Object.entries(porterLabels).map(([key, name]) => {
+      const f = porter[key] || {};
+      const score = f.score || 5;
+      const label = (f.label || '').toLowerCase();
+      return `<div class="porter-row">
+        <span class="porter-name">${name}</span>
+        <div class="porter-bar-wrap">
+          <div class="porter-bg"><div class="porter-fill" data-s="${score}" style="width:0"></div></div>
+          <div class="porter-comment">${f.comment || ''}</div>
+        </div>
+        <span class="porter-badge ${label}">${f.label || '—'}</span>
+      </div>`;
+    }).join('');
+    setTimeout(() => {
+      document.querySelectorAll('.porter-fill').forEach(b => {
+        b.style.width = `${(+b.dataset.s / 10) * 100}%`;
+      });
+    }, 300);
+
+    // Prose
+    set('ai-mktpos', a.marketPosition || a.market_position || '—');
+    set('ai-admin', a.adminInsights || a.admin_insights || '—');
+    set('ai-ir', a.irReliability || a.ir_reliability || '—');
+
+    // Catalysts / Risks
+    $('ai-cats').innerHTML = (c.catalysts || [])
+      .map(x => `<div class="list-item"><span class="list-arrow">→</span>${x}</div>`)
+      .join('') || '<p class="td sm">—</p>';
+    $('ai-risks').innerHTML = (c.risks || [])
+      .map(x => `<div class="list-item"><span class="list-flag">⚑</span>${x}</div>`)
+      .join('') || '<p class="td sm">—</p>';
+
+    // Contradictions
+    $('ai-contra').innerHTML = (c.contradictions || []).map(x => `
+      <div class="contra-row">
+        <span class="contra-icon">${x.found ? '⚑' : '✓'}</span>
+        <span style="color:${x.found ? 'var(--yellow)' : 'var(--text-2)'}">${x.text || ''}</span>
+      </div>`).join('') || '<p class="td sm">—</p>';
+
+    // Final
+    set('ai-final', c.finalParagraph || c.final_paragraph || '—');
+  }
+
+  function show() {
+    $('upload-sec').classList.add('hidden');
+    $('results').classList.remove('hidden');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function reset() {
+    $('upload-sec').classList.remove('hidden');
+    $('results').classList.add('hidden');
+    Status.hide();
+    $('sr').style.strokeDashoffset = '377';
+    $('fi').value = '';
+    $('ai-nokey').classList.remove('hidden');
+    $('ai-body').classList.add('hidden');
+    $('ai-loading').classList.add('hidden');
+    ['r-pnote','r-ann','r-ann2'].forEach(id => $(id)?.classList.add('hidden'));
+    $('bk-card').classList.add('hidden');
+    document.querySelector('[data-tab="score"]')?.click();
+    $('ai-tab-btn').textContent = '✨ Análise IA';
+    _lastData = null;
+  }
+
+  return {
+    renderMeta, renderScore, renderKpis, renderMetrics,
+    renderFin, renderTables, renderAI, showAiLoading, hideAiLoading,
+    show, reset,
+  };
+})();
+
+/* ── Excel Export ────────────────────────────────────────────────────── */
+function exportExcel() {
+  if (!_lastData || typeof XLSX === 'undefined') { alert('Dados não disponíveis para exportação.'); return; }
+  try {
+    const { meta, income, balance, bank_metrics, buffett, tables_summary, tables_detail, ai_insights } = _lastData;
+    const wb = XLSX.utils.book_new();
+    const company = meta?.company || '—';
+    const period  = meta?.period  || '—';
+
+    // Sheet 1: Resumo
+    const sumRows = [
+      ['FinStatement — Análise Financeira'], [''],
+      ['Empresa:', company], ['Período:', period], ['Moeda:', meta?.currency || '—'],
+      ['Gerado em:', new Date().toLocaleString('pt-BR')],
+      ['Buffett Score:', `${buffett?.score_100 || 0}/100 — ${buffett?.label || '—'}`], [''],
+      ['TABELAS DETECTADAS'],
+      ...(tables_summary || []).map((t, i) => [`${i+1}.`, t.title, `${t.rows} linhas`, `Pág. ${t.page}`, `Conf. ${Math.round((t.confidence||0)*100)}%`]),
+    ];
+    const wSum = XLSX.utils.aoa_to_sheet(sumRows);
+    wSum['!cols'] = [{wch:32},{wch:36},{wch:14},{wch:10},{wch:12}];
+    XLSX.utils.book_append_sheet(wb, wSum, 'Resumo');
+
+    // Sheet 2: Demonstrações
+    const finRows = [
+      ['DEMONSTRAÇÃO DO RESULTADO'], [''],
+      ['Conta','Valor (R$ Milhões)'],
+      ['Receita Líquida / MFB', income?.revenue ?? '—'],
+      ['Lucro Bruto', income?.gross_profit ?? '—'],
+      ['Lucro Líquido', income?.net_income ?? '—'],
+      ['Resultado Operacional', income?.operating_income ?? '—'],
+      ['Despesas G&A', income?.ga_expenses ?? '—'],
+      ['D&A', income?.da_expenses ?? '—'],
+      ['Despesas Financeiras', income?.interest_expenses ?? '—'],
+      ['FCO', income?.operating_cash_flow ?? '—'],
+      ['CapEx', income?.capex ?? '—'],
+      [''], ['BALANÇO PATRIMONIAL'], [''],
+      ['Conta','Valor (R$ Milhões)'],
+      ['Ativo Total', balance?.total_assets ?? '—'],
+      ['Ativo Circulante', balance?.current_assets ?? '—'],
+      ['Passivo Circulante', balance?.current_liabilities ?? '—'],
+      ['Patrimônio Líquido', balance?.equity ?? '—'],
+      ['Dívida Bruta', balance?.gross_debt ?? '—'],
+      ['Lucros Acumulados', balance?.retained_earnings ?? '—'],
+      ['Ações em Tesouraria', balance?.treasury_shares ?? '—'],
+    ];
+    if (bank_metrics) {
+      finRows.push([''], ['MÉTRICAS BANCÁRIAS'], [''],
+        ['MFB', bank_metrics.mfb ?? '—'],
+        ['Custo do Crédito', bank_metrics.credit_cost ?? '—'],
+        ['ROE', bank_metrics.roe != null ? `${(bank_metrics.roe*100).toFixed(1)}%` : '—'],
+        ['ROA', bank_metrics.roa != null ? `${(bank_metrics.roa*100).toFixed(1)}%` : '—'],
+        ['Índice Eficiência', bank_metrics.efficiency_ratio != null ? `${(bank_metrics.efficiency_ratio*100).toFixed(1)}%` : '—'],
+        ['Inadimplência +90d', bank_metrics.npl_ratio != null ? `${(bank_metrics.npl_ratio*100).toFixed(1)}%` : '—'],
+        ['Basileia', bank_metrics.basel_ratio != null ? `${(bank_metrics.basel_ratio*100).toFixed(1)}%` : '—'],
+      );
+    }
+    const wFin = XLSX.utils.aoa_to_sheet(finRows);
+    wFin['!cols'] = [{wch:38},{wch:24}];
+    XLSX.utils.book_append_sheet(wb, wFin, 'Demonstrações');
+
+    // Sheets per extracted table
+    const detail = tables_detail || [];
+    const lbls = { dre:'DRE', balanco:'Balanço', dfc:'DFC', ebitda:'EBITDA', kpis:'KPIs', divida:'Dívida', sgda:'SGA', destaques_banco:'DestBanco' };
+    const usedNames = new Set(['Resumo','Demonstrações']);
+
+    detail.forEach(t => {
+      const cols = t.columns || [];
+      const rows = t.rows || [];
+      if (!rows.length) return;
+      const sheetData = [cols];
+      for (const r of rows) sheetData.push([r.label, ...(r.values || [])]);
+      const ws = XLSX.utils.aoa_to_sheet(sheetData);
+      ws['!cols'] = cols.map((_, i) => ({ wch: i === 0 ? 46 : 18 }));
+      const base = lbls[t.id.replace(/_\d+$/, '')] || t.id;
+      let name = `${base}_p${t.page}`.replace(/[\\\/\?\*\[\]:]/g, '').substring(0, 31);
+      let n = 2;
+      while (usedNames.has(name)) name = name.substring(0, 28) + `_${n++}`;
+      usedNames.add(name);
+      XLSX.utils.book_append_sheet(wb, ws, name);
+    });
+
+    // Buffett Score sheet
+    const bRows = [
+      ['ANÁLISE DE VANTAGEM COMPETITIVA — METODOLOGIA BUFFETT'],
+      ['Fonte: Mary Buffett & David Clark (2008)'], [''],
+      [`PONTUAÇÃO TOTAL: ${buffett?.score_100 || 0}/100 — ${buffett?.label || '—'}`], [''],
+      ['Métrica','Valor','Benchmark','Status','Pontos','Explicação','Fórmula'],
+    ];
+    for (const m of (buffett?.metrics || [])) {
+      const sl = m.status==='green' ? '✅ Excelente' : m.status==='yellow' ? '⚠ Moderado' : m.status==='unavailable' ? '— N/D' : '❌ Fraco';
+      bRows.push([m.name, m.formatted_value, m.benchmark, sl, `${m.points}/${m.max_points}`, m.explanation, m.formula]);
+    }
+    const wBuf = XLSX.utils.aoa_to_sheet(bRows);
+    wBuf['!cols'] = [{wch:42},{wch:14},{wch:50},{wch:16},{wch:8},{wch:70},{wch:36}];
+    XLSX.utils.book_append_sheet(wb, wBuf, 'Buffett_Score');
+
+    // AI sheet
+    if (ai_insights) {
+      const a = ai_insights.analysis || {};
+      const c = ai_insights.conclusion || {};
+      const aRows = [
+        ['ANÁLISE DE IA'], [`Provedor: ${ai_insights.provider || '—'}`], [''],
+        ['VEREDITO', c.verdict || '—'], ['Resumo', c.summary || '—'],
+        ['Confiança', c.confidenceLevel || '—'], [''],
+        ['MÉTRICAS'], ['Indicador','Score','Label','Descrição'],
+        ['Risco', c.riskScore, c.riskLabel, c.riskDesc],
+        ['Crescimento', c.growthScore, c.growthLabel, c.growthDesc],
+        ['Confiabilidade', c.reliabilityScore, c.reliabilityLabel, c.reliabilityDesc], [''],
+        ['DESTAQUES'], ['Texto','Confiança','Fonte'],
+        ...(a.highlights||[]).map(h=>[h.text,`${h.confidence}/10`,h.reason]), [''],
+        ['DESAFIOS'], ['Texto','Confiança','Fonte'],
+        ...(a.challenges||[]).map(h=>[h.text,`${h.confidence}/10`,h.reason]), [''],
+        ['SWOT'],
+        ['Forças', (a.swot?.strengths||[]).join(' | ')],
+        ['Fraquezas', (a.swot?.weaknesses||[]).join(' | ')],
+        ['Oportunidades', (a.swot?.opportunities||[]).join(' | ')],
+        ['Ameaças', (a.swot?.threats||[]).join(' | ')], [''],
+        ['PORTER'],
+        ...Object.entries(a.porter||{}).map(([k,v])=>[k,v.label,`${v.score}/10`,v.comment]), [''],
+        ['POSICIONAMENTO', a.marketPosition||'—'], [''],
+        ['GESTÃO', a.adminInsights||'—'], [''],
+        ['CONFIABILIDADE', a.irReliability||'—'], [''],
+        ['CATALISADORES'], ...(c.catalysts||[]).map(x=>['→ '+x]), [''],
+        ['RISCOS'], ...(c.risks||[]).map(x=>['⚑ '+x]), [''],
+        ['CONTRADIÇÕES'], ...(c.contradictions||[]).map(x=>[(x.found?'⚑ ':'✓ ')+x.text]), [''],
+        ['CONCLUSÃO'], [c.finalParagraph||'—'],
+      ];
+      const wAI = XLSX.utils.aoa_to_sheet(aRows);
+      wAI['!cols'] = [{wch:30},{wch:14},{wch:22},{wch:80}];
+      XLSX.utils.book_append_sheet(wb, wAI, 'Analise_IA');
+    }
+
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], { type: 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `FinStatement_${company.replace(/[^a-z0-9]/gi,'_')}_${period.replace(/[^a-z0-9]/gi,'_')}.xlsx`;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    setTimeout(() => { a.click(); setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 3000); }, 100);
+  } catch (err) {
+    console.error(err);
+    alert('Erro ao gerar Excel: ' + err.message);
+  }
+}
+
+/* ── Application controller ──────────────────────────────────────────── */
+const App = (() => {
+  let file = null;
+
+  function onFile(f) {
+    file = f;
+    Status.hide();
+    $('run-btn').disabled = false;
+    Status.show(`📄 ${f.name} (${(f.size/1048576).toFixed(1)} MB) pronto`, 'load');
+    setTimeout(() => Status.hide(), 3000);
+  }
+
+  /**
+   * Two-phase analysis pipeline:
+   *   Phase 1: Extract tables + Buffett Score (fast, ~1-2s)
+   *            → results shown immediately
+   *   Phase 2: AI analysis (slow, ~10-30s, optional)
+   *            → updates AI tab with rotating status messages
+   */
+  async function run() {
+    if (!file) return;
+    const key = $('ak').value.trim();
+    const provider = ProviderPicker.selected;
+    const btn = $('run-btn');
+    btn.disabled = true;
+    Status.hide();
+
+    try {
+      /* ── Phase 1: Extraction + Buffett Score ─────────────────────── */
+      Status.show(
+        '📊 Extraindo tabelas e calculando Buffett Score…',
+        'load',
+        key ? 'Etapa 1/2' : ''
+      );
+
+      const data = await API.analyze(file);
+      _lastData = data;
+
+      // Render extraction results immediately
+      Renderer.renderMeta(data.meta, data.meta.annualization_factor, data.sector);
+      Renderer.renderScore(data.buffett);
+      Renderer.renderKpis(data.income, data.balance, data.bank_metrics, data.sector);
+      Renderer.renderMetrics(data.buffett.metrics);
+      Renderer.renderFin(data.income, data.balance, data.bank_metrics);
+      Renderer.renderTables(data.tables_summary, data.debug, data.tables_detail);
+
+      // Show results page — user sees Buffett Score immediately
+      Renderer.show();
+      document.querySelector('[data-tab="score"]')?.click();
+
+      if (!key) {
+        // No AI key — done
+        Renderer.renderAI(null);
+        Status.show(`✅ Extração concluída · Score ${data.buffett.score_100}/100`, 'ok');
+        setTimeout(() => Status.hide(), 5000);
+        return;
+      }
+
+      /* ── Phase 2: AI Analysis (background) ───────────────────────── */
+      const provLabel = provider === 'auto' ? 'IA' : provider;
+
+      // Show loading placeholder in AI tab
+      Renderer.showAiLoading();
+      $('ai-tab-btn').textContent = '✨ Análise IA ⏳';
+
+      // Rotating status messages so user knows it's working
+      Status.startRotating([
+        `✨ Compilando análise SWOT via ${provLabel}…`,
+        `✨ Avaliando 5 Forças de Porter…`,
+        `✨ Calculando scores de risco e crescimento…`,
+        `✨ Gerando veredito de investimento…`,
+        `✨ Analisando posicionamento de mercado…`,
+        `✨ Finalizando relatório institucional…`,
+      ], 'Etapa 2/2');
+
+      const fullData = await API.withAI(file, key, provider);
+
+      // Update stored data with AI insights
+      _lastData = fullData;
+
+      // Render AI results
+      Status.stopRotating();
+      Renderer.renderAI(fullData.ai_insights || null);
+
+      if (fullData.ai_insights) {
+        const prov = fullData.ai_insights.provider || '';
+        $('ai-tab-btn').textContent = `✨ Análise IA ● ${prov}`;
+      }
+
+      Status.show(
+        `✅ Análise completa · Score ${data.buffett.score_100}/100 · IA via ${provLabel}`,
+        'ok'
+      );
+      setTimeout(() => Status.hide(), 6000);
+
+    } catch (e) {
+      Renderer.hideAiLoading();
+      Status.showError(e.message, e.detail);
+      console.error('[FinStatement]', e);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async function ping() {
+    const b = $('sv-badge');
+    try {
+      const r = await API.health();
+      b.textContent = `● v${r.version}`;
+      b.classList.add('on');
+    } catch {
+      b.textContent = '○ offline';
+      b.classList.remove('on');
+    }
+  }
+
+  function init() {
+    Uploader.init(onFile);
+    ProviderPicker.init();
+    Tabs.init();
+    $('run-btn').addEventListener('click', run);
+    $('reset-btn').addEventListener('click', Renderer.reset);
+    $('export-btn').addEventListener('click', exportExcel);
+    ping();
+    setInterval(ping, 30_000);
+  }
+
+  return { init };
+})();
+
+document.addEventListener('DOMContentLoaded', App.init);
+</script>
+</body>
+</html>
+

@@ -1,0 +1,18 @@
+/MGLU_ER_4T25_POR.pdf
+
+# Arquivos de pdf
+*.pdf
+
+# Cache do Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ambientes virtuais
+venv/
+env/
+.venv/
+
+# IDEs
+.vscode/
+.idea/
