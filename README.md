@@ -47,7 +47,7 @@ Para quem quiser ir além dos números brutos, o sistema oferece análise narrat
 
 ```bash
 # 1. Clonar o repositório
-https://github.com/Huarada/finstatement.git
+git clone https://github.com/Huarada/finstatement.git
 cd finstatement/backend
 
 # 2. Instalar dependências
